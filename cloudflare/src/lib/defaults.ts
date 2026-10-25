@@ -28,6 +28,7 @@ function provider(url: string, behavior: "domain" | "ipcidr" | "classical" = "cl
   return {
     type: "http",
     behavior,
+    ...(url.endsWith(".list") ? { format: "text" } : {}),
     url,
     path: `./ruleset/${url.split("/").pop() || "ruleset"}`,
     interval: 86400,
@@ -79,7 +80,7 @@ export const ACL4SSR_TEMPLATE: RoutingTemplateConfig = {
     BanAD: provider(acl4ssrRaw("BanAD")),
     BanProgramAD: provider(acl4ssrRaw("BanProgramAD")),
     GoogleCN: provider(acl4ssrRaw("GoogleCN")),
-    SteamCN: provider(acl4ssrRaw("SteamCN")),
+    SteamCN: provider(acl4ssrRaw("Ruleset/SteamCN")),
     Microsoft: provider(acl4ssrRaw("Microsoft")),
     Apple: provider(acl4ssrRaw("Apple")),
     Telegram: provider(acl4ssrRaw("Telegram")),
