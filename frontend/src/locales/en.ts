@@ -141,12 +141,12 @@ export default {
       createCollection: "Create collection"
     },
     loadFailed: {
-      title: "Unable to load data",
-      desc: "If you just deployed the app, enter the admin token first. Otherwise, check the Worker API and network connection.",
+      title: "Enter the admin password",
+      desc: "Enter the admin password to continue. This browser stays signed in. After 10 wrong passwords within 15 minutes, wait 15 minutes before trying again. If the password is correct but the data still fails to load, check the Worker API and network connection.",
       btn: "Retry",
-      tokenLabel: "Admin token",
-      tokenPlaceholder: "Enter SUB_STORE_ADMIN_TOKEN",
-      saveAndRetry: "Save and retry",
+      tokenLabel: "Admin password",
+      tokenPlaceholder: "Enter the admin password",
+      saveAndRetry: "Sign in",
       doc: "Open deployment docs",
       followOfficialChannel: "Check the project docs before debugging the deployment.",
       about: "Open project docs"
