@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { failed, isTokenValid } from "../lib/http";
 import { authorizeScopedDownload } from "../lib/compatibility-resources";
-import { buildSubscriptionResult, getTargetContentType, normalizeTarget, normalizeTargetAlias } from "../lib/subscription";
+import { buildSubscriptionResult, contentDispositionForName, getTargetContentType, normalizeTarget, normalizeTargetAlias } from "../lib/subscription";
 import { getRoutingTemplate, getSettings, getSource, getSubscriptionCollection, getSubscriptionSources } from "../lib/store";
 import type { SubscriptionCollection, SubscriptionSource, SubscriptionTarget } from "../types";
 
@@ -90,7 +90,7 @@ async function renderDownload(
     });
     setResponseHeader(headers, "subscription-userinfo", result.metadata.subscriptionUserinfo);
     setResponseHeader(headers, "profile-web-page-url", result.metadata.profileWebPageUrl);
-    setResponseHeader(headers, "content-disposition", result.metadata.contentDisposition);
+    setResponseHeader(headers, "content-disposition", displayNameDisposition(options.collection || source) || result.metadata.contentDisposition);
     setResponseHeader(headers, "x-sub-store-cache", result.metadata.cacheStatus);
     return new Response(result.body, { headers });
   } catch (error) {
@@ -100,6 +100,14 @@ async function renderDownload(
 
 function setResponseHeader(headers: Headers, name: string, value: string | undefined) {
   if (value && !/[\r\n]/.test(value)) headers.set(name, value);
+}
+
+// The editor's display name becomes the client profile name. When it was left empty the
+// frontend stores the id as the name, so keep the upstream filename in that case.
+function displayNameDisposition(record: { id: string; name: string } | undefined) {
+  const name = record?.name?.trim();
+  if (!name || name === record?.id) return undefined;
+  return contentDispositionForName(name);
 }
 
 type TemporarySourceOverride = {
