@@ -33,9 +33,61 @@ export function getBearerToken(c: Context<{ Bindings: SubStoreEnv }>) {
   return authorization.match(/^Bearer\s+(.+)$/i)?.[1] || c.req.query("token") || c.req.header("x-sub-store-token");
 }
 
+// The admin token may be a memorable password, so throttle guessing: a client that sent this
+// many distinct wrong tokens within the window is refused until the window has passed.
+const ADMIN_FAILURE_LIMIT = 10;
+const ADMIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+
 export async function requireAdmin(c: Context<{ Bindings: SubStoreEnv }>) {
-  if (await isTokenValid(c.env.SUB_STORE_ADMIN_TOKEN, getBearerToken(c))) return undefined;
+  const token = getBearerToken(c);
+  const client = getClientKey(c);
+  const since = Date.now() - ADMIN_FAILURE_WINDOW_MS;
+  if (await countAdminFailures(c.env.DB, client, since) >= ADMIN_FAILURE_LIMIT) {
+    c.header("Retry-After", String(ADMIN_FAILURE_WINDOW_MS / 1000));
+    return failed(c, "Too many failed login attempts, try again in 15 minutes", 429);
+  }
+  if (await isTokenValid(c.env.SUB_STORE_ADMIN_TOKEN, token)) return undefined;
+  if (token) await recordAdminFailure(c.env.DB, client, token, since);
   return failed(c, "Admin token is invalid", 401);
+}
+
+function getClientKey(c: Context<{ Bindings: SubStoreEnv }>) {
+  const ip = (c.req.header("cf-connecting-ip") || "unknown").toLowerCase();
+  if (!ip.includes(":") || ip.includes(".")) return ip;
+  // One IPv6 user usually controls a whole /64, so count the prefix rather than the address.
+  const [head, tail] = ip.split("::");
+  const headParts = head ? head.split(":") : [];
+  const tailParts = tail ? tail.split(":") : [];
+  const parts = tail === undefined ? headParts : [...headParts, ...Array(8 - headParts.length - tailParts.length).fill("0"), ...tailParts];
+  return `${parts.slice(0, 4).join(":")}::/64`;
+}
+
+async function countAdminFailures(db: D1Database, client: string, since: number) {
+  try {
+    const row = await db
+      .prepare("SELECT COUNT(*) AS failures FROM admin_auth_failures WHERE client = ? AND created_at > ?")
+      .bind(client, since)
+      .first<{ failures: number }>();
+    return row?.failures ?? 0;
+  } catch {
+    // Throttling is best effort; a D1 hiccup must not lock the owner out.
+    return 0;
+  }
+}
+
+async function recordAdminFailure(db: D1Database, client: string, token: string, since: number) {
+  try {
+    // Store a hash, never the attempt itself (it may be a typo of the real password). Repeating the
+    // same stale token is ignored, so an old token left in a browser does not use up attempts.
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+    const tokenHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    await db.batch([
+      db.prepare("DELETE FROM admin_auth_failures WHERE created_at <= ?").bind(since),
+      db.prepare("INSERT OR IGNORE INTO admin_auth_failures (client, token_hash, created_at) VALUES (?, ?, ?)").bind(client, tokenHash, Date.now()),
+    ]);
+  } catch {
+    // Same as above: never fail the request because the throttle table could not be written.
+  }
 }
 
 export function applyCorsHeaders(response: Response, origin: string | undefined, allowedOrigins = "") {
