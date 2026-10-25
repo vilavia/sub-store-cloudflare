@@ -141,12 +141,12 @@ export default {
       createCollection: "创建组合订阅"
     },
     loadFailed: {
-      title: "数据加载失败",
-      desc: "如果刚完成部署，请先输入管理 Token；否则请检查 Worker API 和网络连接。",
+      title: "请输入管理密码",
+      desc: "输入管理密码后即可进入，本浏览器将保持登录状态。15 分钟内输入 10 个错误密码后，需等待 15 分钟方可重试。如密码正确但仍无法加载，请检查 Worker API 和网络连接。",
       btn: "重试",
-      tokenLabel: "管理 Token",
-      tokenPlaceholder: "输入 SUB_STORE_ADMIN_TOKEN",
-      saveAndRetry: "保存并重试",
+      tokenLabel: "管理密码",
+      tokenPlaceholder: "输入管理密码",
+      saveAndRetry: "登录",
       doc: "查看部署文档",
       followOfficialChannel: "查看项目文档后再排查部署状态",
       about: "查看项目文档"
