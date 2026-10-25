@@ -40,7 +40,7 @@ const ADMIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 
 export async function requireAdmin(c: Context<{ Bindings: SubStoreEnv }>) {
   const token = getBearerToken(c);
-  const client = getClientKey(c);
+  const client = await getClientKey(c);
   const since = Date.now() - ADMIN_FAILURE_WINDOW_MS;
   if (await countAdminFailures(c.env.DB, client, since) >= ADMIN_FAILURE_LIMIT) {
     c.header("Retry-After", String(ADMIN_FAILURE_WINDOW_MS / 1000));
@@ -51,8 +51,8 @@ export async function requireAdmin(c: Context<{ Bindings: SubStoreEnv }>) {
   return failed(c, "Admin token is invalid", 401);
 }
 
-function getClientKey(c: Context<{ Bindings: SubStoreEnv }>) {
-  const ip = (c.req.header("cf-connecting-ip") || "unknown").toLowerCase();
+async function getClientKey(c: Context<{ Bindings: SubStoreEnv }>) {
+  const ip = ((await getForwardedClientIp(c)) || c.req.header("cf-connecting-ip") || "unknown").toLowerCase();
   if (!ip.includes(":") || ip.includes(".")) return ip;
   // One IPv6 user usually controls a whole /64, so count the prefix rather than the address.
   const [head, tail] = ip.split("::");
@@ -60,6 +60,15 @@ function getClientKey(c: Context<{ Bindings: SubStoreEnv }>) {
   const tailParts = tail ? tail.split(":") : [];
   const parts = tail === undefined ? headParts : [...headParts, ...Array(8 - headParts.length - tailParts.length).fill("0"), ...tailParts];
   return `${parts.slice(0, 4).join(":")}::/64`;
+}
+
+// A forwarding Worker on another account (serving a custom domain) reaches us from Cloudflare's
+// shared Worker address, so it passes the visitor IP along. Trust that only with the shared secret,
+// otherwise anyone calling workers.dev directly could pick their own IP and dodge the throttle.
+async function getForwardedClientIp(c: Context<{ Bindings: SubStoreEnv }>) {
+  const secret = (c.env as { SUB_STORE_PROXY_SECRET?: string }).SUB_STORE_PROXY_SECRET;
+  if (!secret || !(await isTokenValid(secret, c.req.header("x-sub-store-proxy-secret")))) return undefined;
+  return c.req.header("x-sub-store-client-ip") || undefined;
 }
 
 async function countAdminFailures(db: D1Database, client: string, since: number) {
