@@ -90,7 +90,7 @@ async function renderDownload(
     });
     setResponseHeader(headers, "subscription-userinfo", result.metadata.subscriptionUserinfo);
     setResponseHeader(headers, "profile-web-page-url", result.metadata.profileWebPageUrl);
-    setResponseHeader(headers, "content-disposition", displayNameDisposition(options.collection || source) || result.metadata.contentDisposition);
+    setResponseHeader(headers, "content-disposition", displayNameDisposition(options.collection, source) || result.metadata.contentDisposition);
     setResponseHeader(headers, "x-sub-store-cache", result.metadata.cacheStatus);
     return new Response(result.body, { headers });
   } catch (error) {
@@ -102,11 +102,13 @@ function setResponseHeader(headers: Headers, name: string, value: string | undef
   if (value && !/[\r\n]/.test(value)) headers.set(name, value);
 }
 
-// The editor's display name becomes the client profile name. When it was left empty the
-// frontend stores the id as the name, so keep the upstream filename in that case.
-function displayNameDisposition(record: { id: string; name: string } | undefined) {
-  const name = record?.name?.trim();
-  if (!name || name === record?.id) return undefined;
+// The editor's display name becomes the client profile name. A collection always uses its own
+// name: the upstream filename only describes whichever source came first. For a single source an
+// empty display name is stored as the id, so keep the upstream filename in that case.
+function displayNameDisposition(collection: SubscriptionCollection | undefined, source: SubscriptionSource | undefined) {
+  if (collection) return contentDispositionForName(collection.name?.trim() || collection.id);
+  const name = source?.name?.trim();
+  if (!name || name === source?.id) return undefined;
   return contentDispositionForName(name);
 }
 
