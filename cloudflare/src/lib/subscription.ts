@@ -1766,8 +1766,11 @@ function setInternalMetadataHeader(headers: Headers, name: string, value: string
 function safeContentDisposition(value: string) {
   if (!value || /[\r\n]/.test(value)) return undefined;
   const filename = parseDispositionFilename(value);
-  if (!filename) return undefined;
-  const safe = Array.from(filename.replace(/[\u0000-\u001f\u007f"\\/:*?<>|]/g, "_").trim()).slice(0, 120).join("");
+  return filename ? contentDispositionForName(filename) : undefined;
+}
+
+export function contentDispositionForName(name: string) {
+  const safe = Array.from(name.replace(/[\u0000-\u001f\u007f"\\/:*?<>|]/g, "_").trim()).slice(0, 120).join("");
   // RFC 5987 form: percent-encoding keeps the header safe for any Unicode name, and there
   // are no quotes for clients to show literally.
   return safe ? `attachment; filename*=UTF-8''${encodeURIComponent(safe)}` : undefined;
