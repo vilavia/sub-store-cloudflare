@@ -608,12 +608,21 @@ onMounted(fetchTemplates);
     font-size: 17px;
     color: var(--primary-text-color);
   }
+
+  .input {
+    border-radius: var(--item-card-radios);
+    background: var(--background-color);
+  }
 }
 
 .template-target-trigger {
   box-shadow: none;
   border-radius: var(--item-card-radios);
   background: var(--background-color);
+
+  :deep(.nut-input) {
+    background: transparent;
+  }
 }
 
 .template-content-editor {
@@ -680,6 +689,7 @@ onMounted(fetchTemplates);
   gap: 8px;
 
   .input {
+    background: transparent;
     border-bottom: 1px solid var(--divider-color);
   }
 }
