@@ -1765,10 +1765,24 @@ function setInternalMetadataHeader(headers: Headers, name: string, value: string
 
 function safeContentDisposition(value: string) {
   if (!value || /[\r\n]/.test(value)) return undefined;
-  const filename = value.match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i)?.[1]?.trim();
+  const filename = parseDispositionFilename(value);
   if (!filename) return undefined;
-  const safe = filename.replace(/[^a-zA-Z0-9._()\-\u4e00-\u9fff ]/g, "_").slice(0, 120);
-  return safe ? `attachment; filename="${safe}"` : undefined;
+  const safe = Array.from(filename.replace(/[\u0000-\u001f\u007f"\\/:*?<>|]/g, "_").trim()).slice(0, 120).join("");
+  // RFC 5987 form: percent-encoding keeps the header safe for any Unicode name, and there
+  // are no quotes for clients to show literally.
+  return safe ? `attachment; filename*=UTF-8''${encodeURIComponent(safe)}` : undefined;
+}
+
+function parseDispositionFilename(value: string) {
+  const extended = value.match(/filename\*\s*=\s*[^']*'[^']*'([^;]+)/i)?.[1];
+  const plain = value.match(/filename\s*=\s*"?([^";]+)"?/i)?.[1];
+  const raw = (extended || plain || "").trim();
+  if (!raw) return undefined;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 }
 
 function surgeType(proxy: ProxyNode) {
