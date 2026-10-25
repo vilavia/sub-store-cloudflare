@@ -98,13 +98,34 @@
         </div>
       </div>
       <div v-if="requestEditing" class="config-input-wrapper">
-        <nut-input class="input" v-model="requestForm.defaultUserAgent" :placeholder="t('myPage.request.defaultUserAgent')" type="text" input-align="left" />
-        <nut-input class="input" v-model="requestForm.defaultFlowUserAgent" :placeholder="t('myPage.request.defaultFlowUserAgent')" type="text" input-align="left" />
-        <nut-input class="input" v-model="requestForm.defaultTimeout" :placeholder="t('myPage.request.defaultTimeout')" type="number" input-align="left" />
-        <nut-input class="input" v-model="requestForm.backendRequestConcurrency" :placeholder="t('myPage.request.backendRequestConcurrency')" type="number" input-align="left" />
-        <nut-input class="input" v-model="requestForm.backendRequestConcurrencyWaitTime" :placeholder="t('myPage.request.backendRequestConcurrencyWaitTime')" type="number" input-align="left" />
-        <nut-input class="input" v-model="requestForm.remoteCacheTtl" :placeholder="t('myPage.request.remoteCacheTtl')" type="number" input-align="left" />
-        <nut-input class="input" v-model="requestForm.nodeInfoApiUrl" :placeholder="t('myPage.request.nodeInfoApiUrl')" type="text" input-align="left" />
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.defaultUserAgent') }}</span>
+          <nut-input class="input" v-model="requestForm.defaultUserAgent" :placeholder="t('myPage.request.defaultUserAgent')" type="text" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.defaultFlowUserAgent') }}</span>
+          <nut-input class="input" v-model="requestForm.defaultFlowUserAgent" :placeholder="t('myPage.request.defaultFlowUserAgent')" type="text" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.defaultTimeout') }}</span>
+          <nut-input class="input" v-model="requestForm.defaultTimeout" :placeholder="t('myPage.request.defaultTimeout')" type="number" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.backendRequestConcurrency') }}</span>
+          <nut-input class="input" v-model="requestForm.backendRequestConcurrency" :placeholder="t('myPage.request.backendRequestConcurrency')" type="number" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.backendRequestConcurrencyWaitTime') }}</span>
+          <nut-input class="input" v-model="requestForm.backendRequestConcurrencyWaitTime" :placeholder="t('myPage.request.backendRequestConcurrencyWaitTime')" type="number" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ t('myPage.request.remoteCacheTtl') }}</span>
+          <nut-input class="input" v-model="requestForm.remoteCacheTtl" :placeholder="t('myPage.request.remoteCacheTtl')" type="number" input-align="left" />
+        </label>
+        <label class="request-field">
+          <span class="request-field__label">{{ nodeInfoApiUrlLabel }}</span>
+          <nut-input class="input" v-model="requestForm.nodeInfoApiUrl" :placeholder="nodeInfoApiUrlLabel" type="text" input-align="left" />
+        </label>
         <label class="boolean-setting">
           <input v-model="requestForm.remoteCacheStaleOnError" type="checkbox" />
           {{ t('myPage.request.remoteCacheStaleOnError') }}
@@ -225,6 +246,8 @@ const requestSummary = computed(() => {
     timeout: settingsStore.defaultTimeout || "30000",
   });
 });
+// The message mentions the literal "{ip}" placeholder, which vue-i18n would otherwise treat as a parameter.
+const nodeInfoApiUrlLabel = computed(() => t("myPage.request.nodeInfoApiUrl", { ip: "{ip}" }));
 
 const syncRequestForm = () => {
   requestForm.defaultUserAgent = settingsStore.defaultUserAgent || "";
@@ -691,6 +714,21 @@ onMounted(fetchTemplates);
   .input {
     background: transparent;
     border-bottom: 1px solid var(--divider-color);
+  }
+}
+
+.request-field {
+  display: flex;
+  flex-direction: column;
+
+  .request-field__label {
+    padding: 8px 16px 0;
+    color: var(--comment-text-color);
+    font-size: 12px;
+  }
+
+  .input {
+    padding-top: 6px;
   }
 }
 
